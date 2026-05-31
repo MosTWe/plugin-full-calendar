@@ -5,7 +5,7 @@ import { showNotice } from '../../utils/showNotice';
  * @license See LICENSE.md
  */
 
-import { FullCalendarSettings, GoogleAccount, DEFAULT_SETTINGS } from '../../types/settings';
+import { FullCalendarSettings, GoogleAccount, DEFAULT_SETTINGS, TasksCustomTimeFormat } from '../../types/settings';
 import { CalendarInfo, generateCalendarId } from '../../types/calendar_settings';
 import { t } from '../../features/i18n/i18n';
 
@@ -85,7 +85,11 @@ export function migrateAndSanitizeSettings(settings: unknown): {
     },
     tasksIntegration: {
       ...DEFAULT_SETTINGS.tasksIntegration,
-      ...((raw as Partial<FullCalendarSettings>).tasksIntegration || {})
+      ...((raw as Partial<FullCalendarSettings>).tasksIntegration || {}),
+      customTimeFormat: {
+        ...(DEFAULT_SETTINGS.tasksIntegration.customTimeFormat as TasksCustomTimeFormat),
+        ...((raw as Partial<FullCalendarSettings>).tasksIntegration?.customTimeFormat || {})
+      }
     },
     fcrReminderCompanion: {
       ...DEFAULT_SETTINGS.fcrReminderCompanion,
