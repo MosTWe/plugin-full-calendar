@@ -872,7 +872,51 @@
         "label": "Aufgaben-Zeitformat",
         "description": "Wählen Sie aus, wie Full Calendar die Zeit in Tasks-Zeilen schreibt.",
         "standard": "Standardformat",
-        "dayPlanner": "Day Planner Format"
+        "dayPlanner": "Day Planner Format",
+        "custom": "Custom format"
+      },
+      "customTimeFormat": {
+        "timeToken": {
+          "label": "Time token",
+          "description": "How the hour and minute are written."
+        },
+        "prefix": {
+          "label": "Prefix",
+          "description": "Text written immediately before the time block.",
+          "none": "(none)",
+          "paren": "( — opening parenthesis",
+          "clock": "⏰ — clock emoji",
+          "custom": "Custom…"
+        },
+        "suffix": {
+          "label": "Suffix",
+          "description": "Text written immediately after the time block.",
+          "none": "(none)",
+          "paren": ") — closing parenthesis",
+          "custom": "Custom…"
+        },
+        "rangeSeparator": {
+          "label": "Range separator",
+          "description": "Text written between the start and end time of a range.",
+          "dash": "-",
+          "spacedDash": " - ",
+          "endash": "–",
+          "to": " to ",
+          "custom": "Custom…"
+        },
+        "position": {
+          "label": "Position",
+          "description": "Where the time block is placed on the task line.",
+          "beforeDate": "Before the date marker",
+          "dayPlanner": "Start of line (Day Planner)",
+          "endOfLine": "End of line"
+        },
+        "customValuePlaceholder": "Enter custom text",
+        "preview": {
+          "label": "Preview",
+          "writes": "Writes",
+          "parsesBack": "Parses back as"
+        }
       }
     },
     "footer": {
