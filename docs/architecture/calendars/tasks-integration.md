@@ -32,6 +32,7 @@ The Tasks integration has an explicit write-format setting:
 - `settings.tasksIntegration.taskDisplayFormat`
     - `dayPlanner` (default): write time at the start of the task line.
     - `standard`: write parenthesized time near date metadata.
+    - `custom`: write a fully configurable time block via `settings.tasksIntegration.customTimeFormat`.
 
 Settings ownership and propagation model: [Settings Architecture](../settings/architecture.md).
 
@@ -43,15 +44,31 @@ For timed tasks, the provider writes one of the following:
 - Day Planner single: `- [ ] 14:30 Task title ⏳ 2026-05-02`
 - Standard range: `- [ ] Task title (5:00 AM-7:00 AM) ⏳ 2026-05-02`
 - Standard single: `- [ ] Task title (14:30) ⏳ 2026-05-02`
+- Custom (example): `- [ ] Task title ⏳ 2026-05-02 ⏰ 09:00–10:30`
 
 All-day updates remove time tokens in either format.
 
+### Custom time format
+
+When `taskDisplayFormat === 'custom'`, serialization is controlled by `settings.tasksIntegration.customTimeFormat`:
+
+| Field | Type | Description |
+|---|---|---|
+| `timeToken` | `'HH:mm'` \| `'H:mm'` \| `'h:mm A'` \| `'hh:mm A'` | Moment/Luxon format token applied to each time value |
+| `prefix` | `string` | Prepended before the start time (supports free-form text or emoji) |
+| `suffix` | `string` | Appended after the end time (or single time for point events) |
+| `rangeSeparator` | `string` | Placed between start and end tokens for ranged events |
+| `position` | `'beforeDate'` \| `'dayPlanner'` \| `'endOfLine'` | Where the assembled time block is inserted in the line |
+
+Times are stored as timezone-naive wall-clock text; no timezone conversion is applied during serialization or parsing.
+
 ### Read behavior
 
-Parsing is format-agnostic and supports both Day Planner prefix and legacy parenthesized syntax. This means:
+Parsing is format-agnostic and supports Day Planner prefix, legacy parenthesized syntax, and the custom pattern. This means:
 
-- Existing legacy tasks remain fully compatible.
-- Newly written day-planner tasks are parsed identically into `startTime` / `endTime`.
+- When `taskDisplayFormat === 'custom'`, `extractTimeFromTitle` tries the custom regex first, then falls back to the built-in `dayPlanner`/`standard` patterns.
+- Existing legacy tasks remain fully compatible after switching to `custom`.
+- Newly written custom-format times use the configured `customTimeFormat`; prior lines are re-serialized on next write.
 - No mandatory bulk migration is required for correctness.
 
 ## Optimistic UI Updates

@@ -181,8 +181,31 @@ Once you add a **Tasks** source in **[Calendar Settings](../settings/sources.md)
 *   **Backlog Filter Date**: Choose which missing date makes a task "unscheduled" (e.g., show tasks missing a `⏳`).
 *   **Calendar Display Date**: Choose which date determines the task's position on the grid.
 *   **Auto-Open Edit Modal**: If enabled, dropping a task from the backlog will immediately open the Tasks plugin's native edit modal for further refinement.
-*   **Task Time Format**: Choose how Full Calendar writes time back to task lines. Default is **Day Planner Format**.
+*   **Task Time Format**: Choose how Full Calendar writes time back to task lines. Default is **Day Planner Format**. Set to **Custom** to configure a bespoke time block (see [Custom Time Format](#custom-time-format) below).
 *   **Include global query in the backlog**: If enabled, applies the Obsidian Tasks global query filters to the backlog view to hide unwanted tasks.
+
+## Custom Time Format
+
+When **Task Time Format** is set to **Custom**, five fields control how the time block is written. Times are stored as timezone-naive wall-clock text — no timezone conversion is applied.
+
+| Field | Options | Notes |
+|---|---|---|
+| **Time token** | `HH:mm` · `H:mm` · `h:mm A` · `hh:mm A` | Controls zero-padding and 12/24-hour display |
+| **Prefix** | Presets (e.g. `⏰ `, `🕐 `) + **Custom…** free-form | Inserted before the start time |
+| **Suffix** | Presets + **Custom…** free-form | Appended after the end time (or single time) |
+| **Range separator** | Presets (e.g. `–`, ` - `) + **Custom…** free-form | Placed between start and end time for ranged events |
+| **Position** | `Before the date marker` · `Start of line (Day Planner)` · `End of line` | Where the time block lands in the task line |
+
+**Example** — token `HH:mm`, prefix `⏰ `, separator `–`, position *end of line*:
+
+```text
+- [ ] Task ⏳ 2026-05-31 ⏰ 09:00–10:30
+```
+
+!!! note "Backward compatibility"
+    Switching to **Custom** does not break existing tasks. Full Calendar always tries the custom pattern first on read, then falls back to the built-in `dayPlanner` and `standard` patterns automatically. Only *newly-written* times use the custom format.
+
+---
 
 ## Advanced Settings
 

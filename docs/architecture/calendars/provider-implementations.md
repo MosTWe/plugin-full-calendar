@@ -121,6 +121,7 @@ The `openEditModalAfterBacklogDrop` setting gates the Tasks plugin edit modal af
 - `settings.tasksIntegration.taskDisplayFormat` controls how timed tasks are serialized back to markdown.
 - Default is `dayPlanner` for new installs and forward writes.
 - `standard` remains available as a compatibility/user preference mode.
+- `custom` delegates to `settings.tasksIntegration.customTimeFormat` (see [Tasks Integration Architecture](tasks-integration.md#custom-time-format)).
 
 Serialization modes:
 
@@ -128,8 +129,9 @@ Serialization modes:
 | ------------ | -------------- |
 | `dayPlanner` | `- [ ] 5:00 - 19:00 Task title ⏳ 2026-05-02` |
 | `standard`   | `- [ ] Task title (5:00 AM-7:00 AM) ⏳ 2026-05-02` |
+| `custom`     | `- [ ] Task title ⏳ 2026-05-02 ⏰ 09:00–10:30` _(example; fully configurable)_ |
 
-Parsing must support both schemas regardless of the selected write mode. Do not introduce a read-mode switch tied to `taskDisplayFormat`.
+Parsing must support all three schemas regardless of the selected write mode. Do not introduce a read-mode switch tied to `taskDisplayFormat`.
 
 ### TaskNotes Provider (provider-owned NLP endpoint)
 
