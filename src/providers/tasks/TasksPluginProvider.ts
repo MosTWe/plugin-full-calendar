@@ -689,7 +689,10 @@ export class TasksPluginProvider
    * Parses the raw task data from the Tasks plugin into our internal, simplified CalendarTask format.
    */
   private parseTasksForCalendar(tasks: TasksPluginTask[]): CalendarTask[] {
-    return tasksToCalendarTasks(tasks);
+    const settings = PluginState.getSettings().tasksIntegration;
+    const customFormat =
+      settings.taskDisplayFormat === 'custom' ? settings.customTimeFormat : undefined;
+    return tasksToCalendarTasks(tasks, customFormat);
   }
 
   // ====================================================================
@@ -910,6 +913,10 @@ export class TasksPluginProvider
     const endTime = newEvent.allDay ? null : (newEvent.endTime ?? null);
     const timeFormat24h = PluginState.getSettings().timeFormat24h;
     const taskDisplayFormat = PluginState.getSettings().tasksIntegration.taskDisplayFormat;
+    const customFormat =
+      taskDisplayFormat === 'custom'
+        ? PluginState.getSettings().tasksIntegration.customTimeFormat
+        : undefined;
 
     await this._surgicallyUpdateTask(
       taskId,
@@ -917,7 +924,8 @@ export class TasksPluginProvider
       startTime,
       endTime,
       timeFormat24h,
-      taskDisplayFormat ?? 'dayPlanner'
+      taskDisplayFormat ?? 'dayPlanner',
+      customFormat
     );
     const [filePath, lineNumberStr] = taskId.split('::');
     return {
@@ -944,6 +952,8 @@ export class TasksPluginProvider
    * @param startTime     New start time in HH:mm, null to clear, or undefined to leave unchanged.
    * @param endTime       New end time in HH:mm, null to clear, or undefined to leave unchanged.
    * @param timeFormat24h Whether to write times in 24h format (default true).
+   * @param taskDisplayFormat The configured Tasks time-display format.
+   * @param customFormat       The custom time format config; used only when taskDisplayFormat is 'custom'.
    */
   private async _surgicallyUpdateTask(
     taskId: string,
@@ -951,7 +961,8 @@ export class TasksPluginProvider
     startTime?: string | null,
     endTime?: string | null,
     timeFormat24h = true,
-    taskDisplayFormat: TasksDisplayFormat = 'dayPlanner'
+    taskDisplayFormat: TasksDisplayFormat = 'dayPlanner',
+    customFormat?: TasksCustomTimeFormat
   ): Promise<void> {
     const task = this.allTasks.find(t => t.id === taskId);
     if (!task) {
@@ -967,7 +978,8 @@ export class TasksPluginProvider
         endTime ?? null,
         timeFormat24h,
         this.getDateTargetEmoji(dateTarget),
-        taskDisplayFormat
+        taskDisplayFormat,
+        customFormat
       );
     }
     await this.replaceTaskInFile(task.filePath, task.lineNumber, [newLine]);
