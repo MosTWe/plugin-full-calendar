@@ -41,8 +41,9 @@ import {
   TasksPluginTask,
   tasksToCalendarTasks
 } from './taskPayloadAdapter';
-import { TasksDateTarget, TasksDisplayFormat } from '../../types/settings';
+import { TasksDateTarget, TasksDisplayFormat, TasksCustomTimeFormat } from '../../types/settings';
 import { TasksQueryFilter } from './TasksQueryFilter';
+import { buildCustomStripRegex, formatCustomTimeBlock } from './customTimeFormat';
 
 export { extractTimeFromTitle } from './taskPayloadAdapter';
 
@@ -53,6 +54,12 @@ const getDueDateEmoji = (): string => '📅';
 const TASKS_CACHE_TIMEOUT_MS = 5000;
 const TASKS_CACHE_RETRY_DELAY_MS = 10000;
 const DEFAULT_TIMED_TASK_DURATION_MINUTES = 30;
+
+/** Matches a parenthesized time block, e.g. "(9:00)" or "(9:00-10:30 AM)". */
+const BUILTIN_TIME_BLOCK_RE =
+  /\s*\(\d{1,2}:\d{2}(?:\s*[AaPp][Mm])?(?:-\d{1,2}:\d{2}(?:\s*[AaPp][Mm])?)?\)/g;
+/** Matches a Day Planner time prefix right after the checkbox, capturing the checkbox prefix. */
+const DAYPLANNER_PREFIX_RE = /^(\s*-\s\[[ xX]\]\s+)\d{1,2}:\d{2}(?:\s*-\s*\d{1,2}:\d{2})?\s+/;
 
 /**
  * Updates or removes the time block `(H:MM)` / `(H:MM AM)` or their range forms
@@ -74,13 +81,16 @@ export function updateTimeInLine(
   endTime: string | null,
   timeFormat24h = true,
   dateSymbol = getScheduledDateEmoji(),
-  displayFormat: TasksDisplayFormat = 'standard'
+  displayFormat: TasksDisplayFormat = 'standard',
+  customFormat?: TasksCustomTimeFormat
 ): string {
+  // Custom format is handled entirely by its own render/strip helpers.
+  if (displayFormat === 'custom' && customFormat) {
+    return updateTimeInLineCustom(line, startTime, endTime, dateSymbol, customFormat);
+  }
+
   // Strip any existing time block (24h or 12h) from the line.
-  const timeBlockPattern =
-    /\s*\(\d{1,2}:\d{2}(?:\s*[AaPp][Mm])?(?:-\d{1,2}:\d{2}(?:\s*[AaPp][Mm])?)?\)/g;
-  const dayPlannerPrefixPattern = /^(\s*-\s\[[ xX]\]\s+)\d{1,2}:\d{2}(?:\s*-\s*\d{1,2}:\d{2})?\s+/;
-  let result = line.replace(timeBlockPattern, '').replace(dayPlannerPrefixPattern, '$1');
+  let result = line.replace(BUILTIN_TIME_BLOCK_RE, '').replace(DAYPLANNER_PREFIX_RE, '$1');
 
   if (startTime) {
     const isDayPlanner = displayFormat === 'dayPlanner';
@@ -120,6 +130,58 @@ export function updateTimeInLine(
   }
 
   return result;
+}
+
+/**
+ * Custom-format variant of updateTimeInLine. Strips any existing built-in OR
+ * custom time block, then writes the custom block at the configured position.
+ */
+function updateTimeInLineCustom(
+  line: string,
+  startTime: string | null,
+  endTime: string | null,
+  dateSymbol: string,
+  fmt: TasksCustomTimeFormat
+): string {
+  // Strip built-in (standard + dayPlanner) blocks AND the custom block so that
+  // switching formats never leaves a duplicated time block behind.
+  let result = line
+    .replace(BUILTIN_TIME_BLOCK_RE, '')
+    .replace(DAYPLANNER_PREFIX_RE, '$1')
+    .replace(buildCustomStripRegex(fmt), '');
+
+  if (!startTime) {
+    return result.replace(/\s+/g, ' ').trimEnd();
+  }
+
+  const block = formatCustomTimeBlock(startTime, endTime, fmt);
+
+  if (fmt.position === 'dayPlanner') {
+    const taskPrefixMatch = result.match(/^(\s*-\s\[[ xX]\]\s+)/);
+    if (taskPrefixMatch) {
+      return `${taskPrefixMatch[1]}${block} ${result.slice(taskPrefixMatch[1].length)}`.trimEnd();
+    }
+    return `${block} ${result}`.trimEnd();
+  }
+
+  if (fmt.position === 'beforeDate') {
+    const idx = result.indexOf(dateSymbol);
+    if (idx !== -1) {
+      const before = result.slice(0, idx).trimEnd();
+      const after = result.slice(idx);
+      return `${before} ${block} ${after}`.replace(/\s+/g, ' ').trimEnd();
+    }
+    // fall through to endOfLine behavior if the date marker is absent.
+  }
+
+  // endOfLine (and beforeDate fallback): append before any block link.
+  const blockLinkRegex = /(\s*\^[a-zA-Z0-9-]+)$/;
+  const blockLinkMatch = result.match(blockLinkRegex);
+  if (blockLinkMatch) {
+    const withoutLink = result.replace(blockLinkRegex, '').trimEnd();
+    return `${withoutLink} ${block}${blockLinkMatch[1]}`;
+  }
+  return `${result.trimEnd()} ${block}`;
 }
 
 /**
