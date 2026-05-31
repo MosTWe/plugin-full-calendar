@@ -145,7 +145,7 @@ function updateTimeInLineCustom(
 ): string {
   // Strip built-in (standard + dayPlanner) blocks AND the custom block so that
   // switching formats never leaves a duplicated time block behind.
-  let result = line
+  const result = line
     .replace(BUILTIN_TIME_BLOCK_RE, '')
     .replace(DAYPLANNER_PREFIX_RE, '$1')
     .replace(buildCustomStripRegex(fmt), '');

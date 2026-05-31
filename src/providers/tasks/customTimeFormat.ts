@@ -75,8 +75,10 @@ function tokenMatchFragment(token: TasksTimeToken): string {
       return String.raw`\d{1,2}:\d{2}\s*[AaPp][Mm]`;
     case 'hh:mm A':
       return String.raw`\d{2}:\d{2}\s*[AaPp][Mm]`;
-    default:
-      throw new Error(`Unsupported time token: ${token satisfies never}`);
+    default: {
+      const exhaustiveCheck: never = token;
+      throw new Error(`Unsupported time token: ${String(exhaustiveCheck)}`);
+    }
   }
 }
 
