@@ -68,6 +68,7 @@ export interface TasksIntegrationSettings {
   openEditModalAfterBacklogDrop: boolean;
   taskDisplayFormat?: TasksDisplayFormat;
   customTimeFormat?: TasksCustomTimeFormat;
+  customTimeFormatHistory?: TasksCustomTimeFormat[];
   includeGlobalQueryInBacklog?: boolean;
   backlogQuery?: string;
 }
@@ -293,6 +294,7 @@ export const DEFAULT_SETTINGS: FullCalendarSettings = {
       rangeSeparator: '-',
       position: 'beforeDate'
     },
+    customTimeFormatHistory: [],
     includeGlobalQueryInBacklog: false,
     backlogQuery: ''
   },
