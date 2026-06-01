@@ -13,13 +13,16 @@ const TOKEN_LUXON: Record<TasksTimeToken, string> = {
   'HH:mm': 'HH:mm',
   'H:mm': 'H:mm',
   'h:mm A': 'h:mm a',
-  'hh:mm A': 'hh:mm a'
+  'hh:mm A': 'hh:mm a',
+  'h:mmA': 'h:mma',
+  'hh:mmA': 'hh:mma'
 };
 
 /** Parses a loosely-formatted input time into a Luxon DateTime (24h "HH:mm" preferred). */
 function parseInputTime(time: string): DateTime {
-  // 'h:mm a' parses both lowercase and uppercase AM/PM input.
-  for (const fmt of ['HH:mm', 'H:mm', 'h:mm a']) {
+  // 'h:mm a' / 'h:mma' parse AM/PM input (case-insensitive) with and without a
+  // space before the meridiem — the Obsidian Tasks plugin writes the no-space form.
+  for (const fmt of ['HH:mm', 'H:mm', 'h:mm a', 'h:mma']) {
     const parsed = DateTime.fromFormat(time.trim(), fmt);
     if (parsed.isValid) {
       return parsed;
@@ -72,8 +75,10 @@ function tokenMatchFragment(token: TasksTimeToken): string {
     case 'H:mm':
       return String.raw`\d{1,2}:\d{2}`;
     case 'h:mm A':
+    case 'h:mmA':
       return String.raw`\d{1,2}:\d{2}\s*[AaPp][Mm]`;
     case 'hh:mm A':
+    case 'hh:mmA':
       return String.raw`\d{2}:\d{2}\s*[AaPp][Mm]`;
     default: {
       const exhaustiveCheck: never = token;

@@ -2,7 +2,7 @@ import fc from 'fast-check';
 import { formatCustomTimeBlock, extractCustomTime } from '../customTimeFormat';
 import { TasksCustomTimeFormat, TasksTimeToken } from '../../../types/settings';
 
-const tokens: TasksTimeToken[] = ['HH:mm', 'H:mm', 'h:mm A', 'hh:mm A'];
+const tokens: TasksTimeToken[] = ['HH:mm', 'H:mm', 'h:mm A', 'hh:mm A', 'h:mmA', 'hh:mmA'];
 
 // Arbitrary canonical 24h time "HH:mm".
 const arbTime = fc

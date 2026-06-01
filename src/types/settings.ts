@@ -48,7 +48,7 @@ export type TasksDisplayFormat = 'standard' | 'dayPlanner' | 'custom';
  * they are mapped to Luxon format strings before being passed to DateTime.toFormat()
  * (e.g. 'h:mm A' → Luxon 'h:mm a' then upper-cased). Do not pass these directly to Luxon.
  */
-export type TasksTimeToken = 'HH:mm' | 'H:mm' | 'h:mm A' | 'hh:mm A';
+export type TasksTimeToken = 'HH:mm' | 'H:mm' | 'h:mm A' | 'hh:mm A' | 'h:mmA' | 'hh:mmA';
 
 /** Where the time block is placed on the task line. */
 export type TasksTimePosition = 'beforeDate' | 'dayPlanner' | 'endOfLine';

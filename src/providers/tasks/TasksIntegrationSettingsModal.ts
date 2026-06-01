@@ -219,7 +219,14 @@ export class TasksIntegrationSettingsModal extends Modal {
       .setName(t('settings.tasksIntegration.customTimeFormat.timeToken.label'))
       .setDesc(t('settings.tasksIntegration.customTimeFormat.timeToken.description'))
       .addDropdown(dropdown => {
-        for (const token of ['HH:mm', 'H:mm', 'h:mm A', 'hh:mm A'] as TasksTimeToken[]) {
+        for (const token of [
+          'HH:mm',
+          'H:mm',
+          'h:mm A',
+          'hh:mm A',
+          'h:mmA',
+          'hh:mmA'
+        ] as TasksTimeToken[]) {
           dropdown.addOption(token, token);
         }
         dropdown.setValue(fmt.timeToken).onChange(async value => {
