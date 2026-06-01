@@ -44,6 +44,7 @@ import {
 import { TasksDateTarget, TasksDisplayFormat, TasksCustomTimeFormat } from '../../types/settings';
 import { TasksQueryFilter } from './TasksQueryFilter';
 import { buildCustomStripRegex, formatCustomTimeBlock } from './customTimeFormat';
+import { dedupeFormats, formatsEqual } from './customTimeFormatHistory';
 
 export { extractTimeFromTitle } from './taskPayloadAdapter';
 
@@ -692,7 +693,13 @@ export class TasksPluginProvider
     const settings = PluginState.getSettings().tasksIntegration;
     const customFormat =
       settings.taskDisplayFormat === 'custom' ? settings.customTimeFormat : undefined;
-    return tasksToCalendarTasks(tasks, customFormat);
+    // Remembered prior formats are consulted on read regardless of the active
+    // format, so old tasks stay readable after a format change. Most-recent first.
+    const history = settings.customTimeFormatHistory ?? [];
+    const fallbackFormats = dedupeFormats([...history].reverse()).filter(
+      f => !(customFormat && formatsEqual(f, customFormat))
+    );
+    return tasksToCalendarTasks(tasks, customFormat, fallbackFormats);
   }
 
   // ====================================================================
