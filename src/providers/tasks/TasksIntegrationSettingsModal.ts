@@ -11,6 +11,7 @@ import {
   TasksTimePosition
 } from '../../types/settings';
 import { formatCustomTimeBlock, extractCustomTime } from './customTimeFormat';
+import { computeUpdatedHistory } from './customTimeFormatHistory';
 
 export class TasksIntegrationSettingsModal extends Modal {
   constructor(
@@ -18,7 +19,14 @@ export class TasksIntegrationSettingsModal extends Modal {
     private onChange: () => void
   ) {
     super(plugin.app);
+    const settings = PluginState.getSettings().tasksIntegration;
+    this.initialCustomFormat =
+      settings.taskDisplayFormat === 'custom' && settings.customTimeFormat
+        ? { ...settings.customTimeFormat }
+        : null;
   }
+
+  private initialCustomFormat: TasksCustomTimeFormat | null = null;
 
   onOpen(): void {
     this.contentEl.empty();
@@ -256,7 +264,10 @@ export class TasksIntegrationSettingsModal extends Modal {
           value: ' - ',
           label: t('settings.tasksIntegration.customTimeFormat.rangeSeparator.spacedDash')
         },
-        { value: '–', label: t('settings.tasksIntegration.customTimeFormat.rangeSeparator.endash') },
+        {
+          value: '–',
+          label: t('settings.tasksIntegration.customTimeFormat.rangeSeparator.endash')
+        },
         { value: ' to ', label: t('settings.tasksIntegration.customTimeFormat.rangeSeparator.to') }
       ],
       t('settings.tasksIntegration.customTimeFormat.rangeSeparator.custom'),
@@ -280,7 +291,10 @@ export class TasksIntegrationSettingsModal extends Modal {
             'dayPlanner',
             t('settings.tasksIntegration.customTimeFormat.position.dayPlanner')
           )
-          .addOption('endOfLine', t('settings.tasksIntegration.customTimeFormat.position.endOfLine'))
+          .addOption(
+            'endOfLine',
+            t('settings.tasksIntegration.customTimeFormat.position.endOfLine')
+          )
           .setValue(fmt.position)
           .onChange(async value => {
             fmt.position = value as TasksTimePosition;
@@ -315,6 +329,22 @@ export class TasksIntegrationSettingsModal extends Modal {
   }
 
   onClose(): void {
+    const settings = PluginState.getSettings().tasksIntegration;
+    const current = settings.customTimeFormat;
+    if (current) {
+      const history = settings.customTimeFormatHistory ?? [];
+      const updated = computeUpdatedHistory(
+        this.initialCustomFormat,
+        current,
+        settings.taskDisplayFormat === 'custom',
+        history
+      );
+      if (updated !== history) {
+        settings.customTimeFormatHistory = updated;
+        // onClose is synchronous; fire-and-forget save is intentional here.
+        void PluginState.saveSettings();
+      }
+    }
     this.contentEl.empty();
   }
 }
