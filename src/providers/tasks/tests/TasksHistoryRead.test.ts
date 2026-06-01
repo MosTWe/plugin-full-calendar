@@ -64,4 +64,19 @@ describe('tasksToCalendarTasks — fallbackFormats threading', () => {
     expect(result[0].startTime).toBe('09:00');
     expect(result[0].endTime).toBe('10:30');
   });
+
+  it('parses a prior-format task when no custom format is active (built-in mode)', () => {
+    const task: TasksPluginTask = {
+      path: 'notes/b.md',
+      description: 'Gym ⏰ 09:00–10:30',
+      taskLocation: { lineNumber: 0 },
+      originalMarkdown: '- [ ] Gym ⏰ 09:00–10:30'
+    };
+    // Standard/Day Planner mode → customFormat is undefined; formatA lives only in history.
+    const result = tasksToCalendarTasks([task], undefined, [formatA]);
+    expect(result).toHaveLength(1);
+    expect(result[0].title).toBe('Gym');
+    expect(result[0].startTime).toBe('09:00');
+    expect(result[0].endTime).toBe('10:30');
+  });
 });
