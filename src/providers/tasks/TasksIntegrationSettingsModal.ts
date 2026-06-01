@@ -11,7 +11,7 @@ import {
   TasksTimePosition
 } from '../../types/settings';
 import { formatCustomTimeBlock, extractCustomTime } from './customTimeFormat';
-import { computeUpdatedHistory } from './customTimeFormatHistory';
+import { computeUpdatedHistory, formatsEqual } from './customTimeFormatHistory';
 
 export class TasksIntegrationSettingsModal extends Modal {
   constructor(
@@ -127,6 +127,11 @@ export class TasksIntegrationSettingsModal extends Modal {
 
     if ((settings.taskDisplayFormat ?? 'dayPlanner') === 'custom') {
       this.renderCustomFormatPane();
+    }
+
+    const rememberedHistory = settings.customTimeFormatHistory ?? [];
+    if (rememberedHistory.length > 0) {
+      this.renderRememberedFormats(rememberedHistory);
     }
   }
 
@@ -325,6 +330,32 @@ export class TasksIntegrationSettingsModal extends Modal {
     });
     container.createEl('div', {
       text: `${t('settings.tasksIntegration.customTimeFormat.preview.parsesBack')}: ${parsedText}`
+    });
+  }
+
+  /** Lists the remembered prior custom formats with a remove button for each. */
+  private renderRememberedFormats(history: TasksCustomTimeFormat[]): void {
+    new Setting(this.contentEl)
+      .setName(t('settings.tasksIntegration.customTimeFormat.remembered.label'))
+      .setDesc(t('settings.tasksIntegration.customTimeFormat.remembered.description'));
+
+    history.forEach(fmt => {
+      const sample = formatCustomTimeBlock('09:00', '10:30', fmt);
+      new Setting(this.contentEl).setName(sample).addExtraButton(button => {
+        button
+          .setIcon('trash')
+          .setTooltip(t('settings.tasksIntegration.customTimeFormat.remembered.remove'))
+          .onClick(async () => {
+            const current =
+              PluginState.getSettings().tasksIntegration.customTimeFormatHistory ?? [];
+            PluginState.getSettings().tasksIntegration.customTimeFormatHistory = current.filter(
+              h => !formatsEqual(h, fmt)
+            );
+            await PluginState.saveSettings();
+            this.onOpen();
+            this.onChange();
+          });
+      });
     });
   }
 

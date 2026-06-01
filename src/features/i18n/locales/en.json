@@ -1006,6 +1006,11 @@
           "label": "Preview",
           "writes": "Writes",
           "parsesBack": "Parses back as"
+        },
+        "remembered": {
+          "label": "Remembered formats",
+          "description": "These formats are still recognized when reading existing tasks.",
+          "remove": "Remove this remembered format"
         }
       }
     },
