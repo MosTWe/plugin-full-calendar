@@ -205,6 +205,23 @@ When **Task Time Format** is set to **Custom**, five fields control how the time
 !!! note "Backward compatibility"
     Switching to **Custom** does not break existing tasks. Full Calendar always tries the custom pattern first on read, then falls back to the built-in `dayPlanner` and `standard` patterns automatically. Only *newly-written* times use the custom format.
 
+### Remembered Formats
+
+Changing your custom format (or switching away from it entirely) doesn't orphan tasks written under the old config. Full Calendar automatically remembers prior custom formats so those tasks remain readable.
+
+**How it works:**
+
+| Trigger | What happens |
+|---|---|
+| Close the Tasks integration settings after changing or leaving a custom format | The prior config is captured into the **Remembered formats** list |
+| Reading tasks in any mode (Standard, Day Planner, or Custom) | The active format is tried first; remembered formats are then consulted in order (most recent first) |
+| Up to 20 entries are kept | Oldest entries are dropped automatically when the limit is reached |
+
+A **Remembered formats** section appears in the Tasks integration settings — in any format mode (Standard, Day Planner, or Custom) — whenever at least one prior custom format has been remembered, letting you remove entries you no longer need. Each entry shows a sample time block and a **trash** icon to remove it individually.
+
+!!! note
+    Removing a remembered format means tasks written with that config will fall back to built-in pattern detection. Tasks that used the Day Planner or legacy parenthesized syntax are always readable regardless.
+
 ---
 
 ## Advanced Settings

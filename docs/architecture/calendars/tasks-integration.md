@@ -71,6 +71,24 @@ Parsing is format-agnostic and supports Day Planner prefix, legacy parenthesized
 - Newly written custom-format times use the configured `customTimeFormat`; prior lines are re-serialized on next write.
 - No mandatory bulk migration is required for correctness.
 
+### Custom format backward-compatibility (remembered formats)
+
+When the user changes their custom format or switches away from `custom` mode, the prior config is captured into `tasksIntegration.customTimeFormatHistory` so that tasks written under it remain readable.
+
+**Storage**: `customTimeFormatHistory?: TasksCustomTimeFormat[]` — ordered oldest-first; capped at `MAX_HISTORY = 20` entries (oldest evicted); always deduplicated.
+
+**Capture logic** (`computeUpdatedHistory`, `src/providers/tasks/customTimeFormatHistory.ts`): called in `TasksIntegrationSettingsModal.onClose()`. The format that was active *when the modal opened* (`initialCustomFormat`) is appended to history when it is no longer the active writing format — i.e., the fields changed OR `custom` is no longer the selected display format. No capture occurs if no prior custom format was active at open, or if an identical entry is already in history.
+
+**Read path** (`TasksPluginProvider.parseTasksForCalendar()`):
+
+1. Try the active custom format (if `taskDisplayFormat === 'custom'`).
+2. Try each remembered format in reverse-insertion order (most recent first), excluding any that duplicates the active format.
+3. Fall back to built-in `dayPlanner` and `standard` patterns.
+
+This fallback cascade is active in **all** modes — including Standard and Day Planner — so old custom-format tasks are never orphaned after a format change.
+
+**Settings UI**: `TasksIntegrationSettingsModal.renderRememberedFormats()` renders each remembered entry as a sample time block with a remove button. Individual removal filters the entry from `customTimeFormatHistory` and saves immediately.
+
 ## Optimistic UI Updates
 
 To ensure the calendar feels responsive despite file I/O latency:
