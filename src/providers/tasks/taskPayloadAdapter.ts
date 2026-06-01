@@ -60,10 +60,14 @@ function collapseSpaces(value: string): string {
  * Returns { startTime, endTime, cleanTitle } where cleanTitle has the pattern removed.
  * @param customFormat When provided, custom-format extraction is attempted first;
  *   on no match it falls through to the built-in parenthesized/dayPlanner patterns.
+ * @param fallbackFormats When provided, each format is tried in order after
+ *   customFormat fails but before the built-in patterns — used to read tasks
+ *   written under previously-used custom formats.
  */
 export function extractTimeFromTitle(
   title: string,
-  customFormat?: TasksCustomTimeFormat
+  customFormat?: TasksCustomTimeFormat,
+  fallbackFormats?: TasksCustomTimeFormat[]
 ): {
   startTime: string | null;
   endTime: string | null;
@@ -73,6 +77,14 @@ export function extractTimeFromTitle(
     const custom = extractCustomTime(title, customFormat);
     if (custom) {
       return custom;
+    }
+  }
+  if (fallbackFormats) {
+    for (const fmt of fallbackFormats) {
+      const custom = extractCustomTime(title, fmt);
+      if (custom) {
+        return custom;
+      }
     }
   }
   const TIME_TOKEN = String.raw`\d{1,2}:\d{2}(?:\s*[AaPp][Mm])?`;
@@ -150,7 +162,8 @@ function getTaskDescription(task: TasksPluginTask): string {
 
 export function getCleanTaskTitle(
   task: TasksPluginTask,
-  customFormat?: TasksCustomTimeFormat
+  customFormat?: TasksCustomTimeFormat,
+  fallbackFormats?: TasksCustomTimeFormat[]
 ): {
   title: string;
   startTime: string | null;
@@ -162,7 +175,7 @@ export function getCleanTaskTitle(
       .replace(TASKS_DATE_METADATA_PATTERN, ' ')
       .replace(TASKS_PRIORITY_PATTERN, ' ')
   );
-  const { cleanTitle, startTime, endTime } = extractTimeFromTitle(minimallyCleanedDescription, customFormat);
+  const { cleanTitle, startTime, endTime } = extractTimeFromTitle(minimallyCleanedDescription, customFormat, fallbackFormats);
 
   return {
     title: cleanTitle || task.description || task.originalMarkdown,
@@ -173,10 +186,11 @@ export function getCleanTaskTitle(
 
 export function taskToCalendarTask(
   task: TasksPluginTask,
-  customFormat?: TasksCustomTimeFormat
+  customFormat?: TasksCustomTimeFormat,
+  fallbackFormats?: TasksCustomTimeFormat[]
 ): CalendarTask {
   const oneBasedLineNumber = task.taskLocation.lineNumber + 1;
-  const { title, startTime, endTime } = getCleanTaskTitle(task, customFormat);
+  const { title, startTime, endTime } = getCleanTaskTitle(task, customFormat, fallbackFormats);
   const doneDate = getTaskDate(task, 'doneDate', '_doneDate');
 
   return {
@@ -196,7 +210,8 @@ export function taskToCalendarTask(
 
 export function tasksToCalendarTasks(
   tasks: TasksPluginTask[] | undefined,
-  customFormat?: TasksCustomTimeFormat
+  customFormat?: TasksCustomTimeFormat,
+  fallbackFormats?: TasksCustomTimeFormat[]
 ): CalendarTask[] {
   if (!tasks) {
     return [];
@@ -205,7 +220,7 @@ export function tasksToCalendarTasks(
   const dedupedTasks = new Map<string, CalendarTask>();
 
   for (const task of tasks) {
-    const calendarTask = taskToCalendarTask(task, customFormat);
+    const calendarTask = taskToCalendarTask(task, customFormat, fallbackFormats);
     const nativeTaskId = typeof task.id === 'string' ? task.id.trim() : '';
     const dedupeKey = nativeTaskId ? `native:${nativeTaskId}` : `location:${calendarTask.id}`;
 
