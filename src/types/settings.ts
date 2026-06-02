@@ -40,13 +40,35 @@ export interface ActivityWatchSettings {
 export type TasksDateTarget = 'scheduledDate' | 'startDate' | 'dueDate';
 
 export type TasksBacklogDateTarget = TasksDateTarget;
-export type TasksDisplayFormat = 'standard' | 'dayPlanner';
+export type TasksDisplayFormat = 'standard' | 'dayPlanner' | 'custom';
+
+/**
+ * Supported time-token formats for the custom display format (closed set).
+ * These are moment-style DISPLAY identifiers (also used as dropdown labels);
+ * they are mapped to Luxon format strings before being passed to DateTime.toFormat()
+ * (e.g. 'h:mm A' → Luxon 'h:mm a' then upper-cased). Do not pass these directly to Luxon.
+ */
+export type TasksTimeToken = 'HH:mm' | 'H:mm' | 'h:mm A' | 'hh:mm A' | 'h:mmA' | 'hh:mmA';
+
+/** Where the time block is placed on the task line. */
+export type TasksTimePosition = 'beforeDate' | 'dayPlanner' | 'endOfLine';
+
+/** Structured definition of a user-customized time block. */
+export interface TasksCustomTimeFormat {
+  timeToken: TasksTimeToken;
+  prefix: string;
+  suffix: string;
+  rangeSeparator: string;
+  position: TasksTimePosition;
+}
 
 export interface TasksIntegrationSettings {
   backlogDateTarget: TasksBacklogDateTarget;
   calendarDisplayDateTarget: TasksDateTarget;
   openEditModalAfterBacklogDrop: boolean;
   taskDisplayFormat?: TasksDisplayFormat;
+  customTimeFormat?: TasksCustomTimeFormat;
+  customTimeFormatHistory?: TasksCustomTimeFormat[];
   includeGlobalQueryInBacklog?: boolean;
   backlogQuery?: string;
 }
@@ -266,6 +288,15 @@ export const DEFAULT_SETTINGS: FullCalendarSettings = {
     calendarDisplayDateTarget: 'scheduledDate',
     openEditModalAfterBacklogDrop: false,
     taskDisplayFormat: 'dayPlanner',
+    // Populated eagerly so switching taskDisplayFormat to 'custom' has a sensible starting point.
+    customTimeFormat: {
+      timeToken: 'HH:mm',
+      prefix: '(',
+      suffix: ')',
+      rangeSeparator: '-',
+      position: 'beforeDate'
+    },
+    customTimeFormatHistory: [],
     includeGlobalQueryInBacklog: false,
     backlogQuery: ''
   },

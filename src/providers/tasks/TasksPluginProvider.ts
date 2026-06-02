@@ -41,8 +41,10 @@ import {
   TasksPluginTask,
   tasksToCalendarTasks
 } from './taskPayloadAdapter';
-import { TasksDateTarget, TasksDisplayFormat } from '../../types/settings';
+import { TasksDateTarget, TasksDisplayFormat, TasksCustomTimeFormat } from '../../types/settings';
 import { TasksQueryFilter } from './TasksQueryFilter';
+import { buildCustomStripRegex, formatCustomTimeBlock } from './customTimeFormat';
+import { dedupeFormats, formatsEqual } from './customTimeFormatHistory';
 
 export { extractTimeFromTitle } from './taskPayloadAdapter';
 
@@ -53,6 +55,12 @@ const getDueDateEmoji = (): string => '📅';
 const TASKS_CACHE_TIMEOUT_MS = 5000;
 const TASKS_CACHE_RETRY_DELAY_MS = 10000;
 const DEFAULT_TIMED_TASK_DURATION_MINUTES = 30;
+
+/** Matches a parenthesized time block, e.g. "(9:00)" or "(9:00-10:30 AM)". */
+const BUILTIN_TIME_BLOCK_RE =
+  /\s*\(\d{1,2}:\d{2}(?:\s*[AaPp][Mm])?(?:-\d{1,2}:\d{2}(?:\s*[AaPp][Mm])?)?\)/g;
+/** Matches a Day Planner time prefix right after the checkbox, capturing the checkbox prefix. */
+const DAYPLANNER_PREFIX_RE = /^(\s*-\s\[[ xX]\]\s+)\d{1,2}:\d{2}(?:\s*-\s*\d{1,2}:\d{2})?\s+/;
 
 /**
  * Updates or removes the time block `(H:MM)` / `(H:MM AM)` or their range forms
@@ -74,13 +82,16 @@ export function updateTimeInLine(
   endTime: string | null,
   timeFormat24h = true,
   dateSymbol = getScheduledDateEmoji(),
-  displayFormat: TasksDisplayFormat = 'standard'
+  displayFormat: TasksDisplayFormat = 'standard',
+  customFormat?: TasksCustomTimeFormat
 ): string {
+  // Custom format is handled entirely by its own render/strip helpers.
+  if (displayFormat === 'custom' && customFormat) {
+    return updateTimeInLineCustom(line, startTime, endTime, dateSymbol, customFormat);
+  }
+
   // Strip any existing time block (24h or 12h) from the line.
-  const timeBlockPattern =
-    /\s*\(\d{1,2}:\d{2}(?:\s*[AaPp][Mm])?(?:-\d{1,2}:\d{2}(?:\s*[AaPp][Mm])?)?\)/g;
-  const dayPlannerPrefixPattern = /^(\s*-\s\[[ xX]\]\s+)\d{1,2}:\d{2}(?:\s*-\s*\d{1,2}:\d{2})?\s+/;
-  let result = line.replace(timeBlockPattern, '').replace(dayPlannerPrefixPattern, '$1');
+  let result = line.replace(BUILTIN_TIME_BLOCK_RE, '').replace(DAYPLANNER_PREFIX_RE, '$1');
 
   if (startTime) {
     const isDayPlanner = displayFormat === 'dayPlanner';
@@ -124,6 +135,58 @@ export function updateTimeInLine(
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Custom-format variant of updateTimeInLine. Strips any existing built-in OR
+ * custom time block, then writes the custom block at the configured position.
+ */
+function updateTimeInLineCustom(
+  line: string,
+  startTime: string | null,
+  endTime: string | null,
+  dateSymbol: string,
+  fmt: TasksCustomTimeFormat
+): string {
+  // Strip built-in (standard + dayPlanner) blocks AND the custom block so that
+  // switching formats never leaves a duplicated time block behind.
+  const result = line
+    .replace(BUILTIN_TIME_BLOCK_RE, '')
+    .replace(DAYPLANNER_PREFIX_RE, '$1')
+    .replace(buildCustomStripRegex(fmt), '');
+
+  if (!startTime) {
+    return result.replace(/\s+/g, ' ').trimEnd();
+  }
+
+  const block = formatCustomTimeBlock(startTime, endTime, fmt);
+
+  if (fmt.position === 'dayPlanner') {
+    const taskPrefixMatch = result.match(/^(\s*-\s\[[ xX]\]\s+)/);
+    if (taskPrefixMatch) {
+      return `${taskPrefixMatch[1]}${block} ${result.slice(taskPrefixMatch[1].length)}`.trimEnd();
+    }
+    return `${block} ${result}`.trimEnd();
+  }
+
+  if (fmt.position === 'beforeDate') {
+    const idx = result.indexOf(dateSymbol);
+    if (idx !== -1) {
+      const before = result.slice(0, idx).trimEnd();
+      const after = result.slice(idx);
+      return `${before} ${block} ${after}`.replace(/\s+/g, ' ').trimEnd();
+    }
+    // fall through to endOfLine behavior if the date marker is absent.
+  }
+
+  // endOfLine (and beforeDate fallback): append before any block link.
+  const blockLinkRegex = /(\s*\^[a-zA-Z0-9-]+)$/;
+  const blockLinkMatch = result.match(blockLinkRegex);
+  if (blockLinkMatch) {
+    const withoutLink = result.replace(blockLinkRegex, '').trimEnd();
+    return `${withoutLink} ${block}${blockLinkMatch[1]}`;
+  }
+  return `${result.trimEnd()} ${block}`;
 }
 
 /**
@@ -631,7 +694,16 @@ export class TasksPluginProvider
    * Parses the raw task data from the Tasks plugin into our internal, simplified CalendarTask format.
    */
   private parseTasksForCalendar(tasks: TasksPluginTask[]): CalendarTask[] {
-    return tasksToCalendarTasks(tasks);
+    const settings = PluginState.getSettings().tasksIntegration;
+    const customFormat =
+      settings.taskDisplayFormat === 'custom' ? settings.customTimeFormat : undefined;
+    // Remembered prior formats are consulted on read regardless of the active
+    // format, so old tasks stay readable after a format change. Most-recent first.
+    const history = settings.customTimeFormatHistory ?? [];
+    const fallbackFormats = dedupeFormats([...history].reverse()).filter(
+      f => !(customFormat && formatsEqual(f, customFormat))
+    );
+    return tasksToCalendarTasks(tasks, customFormat, fallbackFormats);
   }
 
   // ====================================================================
@@ -920,6 +992,10 @@ export class TasksPluginProvider
     const endTime = newEvent.allDay ? null : (newEvent.endTime ?? null);
     const timeFormat24h = PluginState.getSettings().timeFormat24h;
     const taskDisplayFormat = PluginState.getSettings().tasksIntegration.taskDisplayFormat;
+    const customFormat =
+      taskDisplayFormat === 'custom'
+        ? PluginState.getSettings().tasksIntegration.customTimeFormat
+        : undefined;
 
     await this._surgicallyUpdateTask(
       taskId,
@@ -927,7 +1003,8 @@ export class TasksPluginProvider
       startTime,
       endTime,
       timeFormat24h,
-      taskDisplayFormat ?? 'dayPlanner'
+      taskDisplayFormat ?? 'dayPlanner',
+      customFormat
     );
     const [filePath, lineNumberStr] = taskId.split('::');
     return {
@@ -954,6 +1031,8 @@ export class TasksPluginProvider
    * @param startTime     New start time in HH:mm, null to clear, or undefined to leave unchanged.
    * @param endTime       New end time in HH:mm, null to clear, or undefined to leave unchanged.
    * @param timeFormat24h Whether to write times in 24h format (default true).
+   * @param taskDisplayFormat The configured Tasks time-display format.
+   * @param customFormat       The custom time format config; used only when taskDisplayFormat is 'custom'.
    */
   private async _surgicallyUpdateTask(
     taskId: string,
@@ -961,7 +1040,8 @@ export class TasksPluginProvider
     startTime?: string | null,
     endTime?: string | null,
     timeFormat24h = true,
-    taskDisplayFormat: TasksDisplayFormat = 'dayPlanner'
+    taskDisplayFormat: TasksDisplayFormat = 'dayPlanner',
+    customFormat?: TasksCustomTimeFormat
   ): Promise<void> {
     const task = this.allTasks.find(t => t.id === taskId);
     if (!task) {
@@ -977,7 +1057,8 @@ export class TasksPluginProvider
         endTime ?? null,
         timeFormat24h,
         this.getDateTargetEmoji(dateTarget),
-        taskDisplayFormat
+        taskDisplayFormat,
+        customFormat
       );
     }
     await this.replaceTaskInFile(task.filePath, task.lineNumber, [newLine]);

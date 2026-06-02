@@ -1,3 +1,6 @@
+import { TasksCustomTimeFormat } from '../../types/settings';
+import { extractCustomTime } from './customTimeFormat';
+
 export interface CalendarTask {
   id: string;
   title: string;
@@ -55,12 +58,35 @@ function collapseSpaces(value: string): string {
  * Extracts a time or time range from a task title.
  * Matches patterns like (18:00) or (18:00-20:00) anywhere in the title.
  * Returns { startTime, endTime, cleanTitle } where cleanTitle has the pattern removed.
+ * @param customFormat When provided, custom-format extraction is attempted first;
+ *   on no match it falls through to the built-in parenthesized/dayPlanner patterns.
+ * @param fallbackFormats When provided, each format is tried in order after
+ *   customFormat fails but before the built-in patterns — used to read tasks
+ *   written under previously-used custom formats.
  */
-export function extractTimeFromTitle(title: string): {
+export function extractTimeFromTitle(
+  title: string,
+  customFormat?: TasksCustomTimeFormat,
+  fallbackFormats?: TasksCustomTimeFormat[]
+): {
   startTime: string | null;
   endTime: string | null;
   cleanTitle: string;
 } {
+  if (customFormat) {
+    const custom = extractCustomTime(title, customFormat);
+    if (custom) {
+      return custom;
+    }
+  }
+  if (fallbackFormats) {
+    for (const fmt of fallbackFormats) {
+      const custom = extractCustomTime(title, fmt);
+      if (custom) {
+        return custom;
+      }
+    }
+  }
   const TIME_TOKEN = String.raw`\d{1,2}:\d{2}(?:\s*[AaPp][Mm])?`;
   const dayPlannerRangePattern = new RegExp(`^\\s*(${TIME_TOKEN})\\s*-\\s*(${TIME_TOKEN})\\s+`);
   const dayPlannerSinglePattern = new RegExp(`^\\s*(${TIME_TOKEN})\\s+`);
@@ -134,7 +160,11 @@ function getTaskDescription(task: TasksPluginTask): string {
   return task.description || '';
 }
 
-export function getCleanTaskTitle(task: TasksPluginTask): {
+export function getCleanTaskTitle(
+  task: TasksPluginTask,
+  customFormat?: TasksCustomTimeFormat,
+  fallbackFormats?: TasksCustomTimeFormat[]
+): {
   title: string;
   startTime: string | null;
   endTime: string | null;
@@ -145,7 +175,7 @@ export function getCleanTaskTitle(task: TasksPluginTask): {
       .replace(TASKS_DATE_METADATA_PATTERN, ' ')
       .replace(TASKS_PRIORITY_PATTERN, ' ')
   );
-  const { cleanTitle, startTime, endTime } = extractTimeFromTitle(minimallyCleanedDescription);
+  const { cleanTitle, startTime, endTime } = extractTimeFromTitle(minimallyCleanedDescription, customFormat, fallbackFormats);
 
   return {
     title: cleanTitle || task.description || task.originalMarkdown,
@@ -154,9 +184,13 @@ export function getCleanTaskTitle(task: TasksPluginTask): {
   };
 }
 
-export function taskToCalendarTask(task: TasksPluginTask): CalendarTask {
+export function taskToCalendarTask(
+  task: TasksPluginTask,
+  customFormat?: TasksCustomTimeFormat,
+  fallbackFormats?: TasksCustomTimeFormat[]
+): CalendarTask {
   const oneBasedLineNumber = task.taskLocation.lineNumber + 1;
-  const { title, startTime, endTime } = getCleanTaskTitle(task);
+  const { title, startTime, endTime } = getCleanTaskTitle(task, customFormat, fallbackFormats);
   const doneDate = getTaskDate(task, 'doneDate', '_doneDate');
 
   return {
@@ -174,7 +208,11 @@ export function taskToCalendarTask(task: TasksPluginTask): CalendarTask {
   };
 }
 
-export function tasksToCalendarTasks(tasks: TasksPluginTask[] | undefined): CalendarTask[] {
+export function tasksToCalendarTasks(
+  tasks: TasksPluginTask[] | undefined,
+  customFormat?: TasksCustomTimeFormat,
+  fallbackFormats?: TasksCustomTimeFormat[]
+): CalendarTask[] {
   if (!tasks) {
     return [];
   }
@@ -182,7 +220,7 @@ export function tasksToCalendarTasks(tasks: TasksPluginTask[] | undefined): Cale
   const dedupedTasks = new Map<string, CalendarTask>();
 
   for (const task of tasks) {
-    const calendarTask = taskToCalendarTask(task);
+    const calendarTask = taskToCalendarTask(task, customFormat, fallbackFormats);
     const nativeTaskId = typeof task.id === 'string' ? task.id.trim() : '';
     const dedupeKey = nativeTaskId ? `native:${nativeTaskId}` : `location:${calendarTask.id}`;
 
