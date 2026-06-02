@@ -203,8 +203,9 @@
       "selectorUnavailable": "El plugin TaskNotes no está disponible o no expone integración del selector."
     },
     "milestones": {
-      "unlockedTitle": "Logro desbloqueado",
-      "unlockedBody": "{{title}} - {{description}}"
+      "sponsorDesc": "If FCR added value, please consider supporting the work:",
+      "sponsorBtn": "Support Development",
+      "goalBtn": "See Financial Goal"
     },
     "chronoAnalyserDemoLoaded": "Demo de ChronoAnalyser cargado.",
     "chronoAnalyserDemoLoadedFromCache": "Demo de ChronoAnalyser cargado desde caché.",
@@ -212,7 +213,8 @@
     "configureLinkedNotesDirFirst": "Por favor, configure primero un directorio de Notas vinculadas en la configuración.",
     "failedToCreateLinkedNote": "No se pudo crear la nota vinculada.",
     "fcrReminderSynced": "FCR Reminder Companion sincronizado correctamente.",
-    "fcrReminderCompanionOfflineBold": "ADVERTENCIA: El demonio FCR Reminder Companion está desconectado. NO recibirás notificaciones de escritorio nativas hasta que se inicie."
+    "fcrReminderCompanionOfflineBold": "ADVERTENCIA: El demonio FCR Reminder Companion está desconectado. NO recibirás notificaciones de escritorio nativas hasta que se inicie.",
+    "chronoAnalyserChartLoadFailed": "Failed to load charting library. Please check your internet connection."
   },
   "eventCache": {
     "calendarNotFound": "No se puede añadir el evento: no se encontró el calendario con ID {{calendarId}}.",
@@ -572,6 +574,66 @@
             "title": "Digital Librarian",
             "description": "Maintain over 10,000 non-deleted events across local calendars.",
             "target": "Objetivo: 10.000 eventos locales activos"
+          },
+          "nightOwl100": {
+            "title": "Midnight Dynamo",
+            "description": "Successfully perform 100 calendar operations during late-night hours (10 PM to 4 AM).",
+            "target": "Target: 100 late-night actions"
+          },
+          "earlyBird100": {
+            "title": "Dawn Ascendant",
+            "description": "Successfully perform 100 calendar operations during early-morning hours (5 AM to 8 AM).",
+            "target": "Target: 100 early-morning actions"
+          },
+          "weekendWarrior250": {
+            "title": "Sabbath Champion",
+            "description": "Perform 250 successful calendar operations on Saturdays and Sundays.",
+            "target": "Target: 250 weekend actions"
+          },
+          "nlpWhisperer200": {
+            "title": "NLP Conjurer",
+            "description": "Create 200 events using FCR NLP quick-add commands.",
+            "target": "Target: 200 NLP creations"
+          },
+          "superOrganizer10": {
+            "title": "Director General",
+            "description": "Maintain 10 or more active workspace configurations.",
+            "target": "Target: 10 workspaces"
+          },
+          "syncSpecialist8": {
+            "title": "Universal Connector",
+            "description": "Maintain 8 or more active remote calendars (Google/ICS/CalDAV).",
+            "target": "Target: 8 active remote calendars"
+          },
+          "createdTotal25000": {
+            "title": "Calendar Emperor",
+            "description": "Successfully create 25,000 events.",
+            "target": "Target: 25,000 created events"
+          },
+          "createdTotal100000": {
+            "title": "Time Overlord",
+            "description": "Successfully create 100,000 events.",
+            "target": "Target: 100,000 created events"
+          },
+          "habitualPlanner100": {
+            "title": "The Eternal Planner",
+            "description": "Perform calendar actions on 100 consecutive days.",
+            "target": "Target: 100-day action streak"
+          },
+          "dedicated365": {
+            "title": "Chronicle Sovereign",
+            "description": "Maintain at least 1 year (365 days) between first and latest recorded action.",
+            "target": "Target: 365-day history span"
+          },
+          "totalOps250000": {
+            "title": "Operations Sovereign",
+            "description": "Reach 250,000 total successful operations (create/delete/update/move).",
+            "target": "Target: 250,000 successful operations"
+          },
+          "totalOps1000000": {
+            "title": "Time-Space Continuum",
+            "description": "Reach 1,000,000 total successful operations.",
+            "target": "Target: 1,000,000 successful operations"
           }
         }
       }
@@ -973,7 +1035,19 @@
             "empty": "No location set.",
             "resolving": "Resolving location..."
           }
+        },
+        "unit": {
+          "label": "Temperature unit",
+          "description": "Choose whether to display temperatures in Celsius or Fahrenheit.",
+          "celsius": "Celsius (°C)",
+          "fahrenheit": "Fahrenheit (°F)"
         }
+      },
+      "detailModal": {
+        "title": "Pronóstico Detallado - {{date}}",
+        "hourlyHeader": "Pronóstico por Hora",
+        "apparentTemp": "Sensación térmica: {{temp}}°C",
+        "noHourly": "No hay datos de pronóstico por hora disponibles."
       },
       "conditions": {
         "unknown": "Unknown",
@@ -1029,8 +1103,11 @@
         "new": "Nuevo evento",
         "edit": "Editar evento"
       },
+      "advancedOptions": "Opciones avanzadas",
       "buttons": {
-        "openNote": "Abrir nota"
+        "openNote": "Abrir nota",
+        "delete": "Eliminar",
+        "save": "Guardar evento"
       },
       "errors": {
         "createNoCalendars": "No se puede crear el evento: No hay calendarios editables disponibles.",
@@ -1050,15 +1127,14 @@
       },
       "fields": {
         "title": {
-          "label": "Título",
           "placeholder": "Título del evento"
         },
         "category": {
-          "label": "Categoría",
           "placeholder": "Categoría (opcional)"
         },
         "display": {
           "label": "Visualización",
+          "tooltip": "Elige cómo aparece este evento en el calendario",
           "options": {
             "auto": "Evento normal",
             "background": "Evento de fondo",
@@ -1081,9 +1157,9 @@
           "completed": "Completado"
         },
         "notification": {
-          "label": "Notificar:",
-          "mins": "Min.",
+          "label": "Notificar",
           "select": "Seleccionar...",
+          "mins": "Min.",
           "presets": {
             "30m": "30 min",
             "1h": "1 hora",
@@ -1119,11 +1195,18 @@
           },
           "yearlyText": "Se repite cada año en {{date}}.",
           "endRepeat": "Fin de repetición"
+        },
+        "location": {
+          "placeholder": "Añadir ubicación..."
+        },
+        "description": {
+          "placeholder": "Añadir descripción..."
         }
       },
       "tooltips": {
         "recurringTaskCompletion": "La finalización de tareas recurrentes puede alternarse en instancias individuales en la vista de calendario.",
-        "dailyNoteRecurring": "Los eventos recurrentes no son compatibles en Notas Diarias. Por favor usa un calendario de 'Nota completa'."
+        "dailyNoteRecurring": "Los eventos recurrentes no son compatibles en Notas Diarias. Por favor usa un calendario de 'Nota completa'.",
+        "inheritedProperty": "Esta propiedad se hereda. Haz clic para editar el evento recurrente padre."
       }
     },
     "deleteRecurring": {

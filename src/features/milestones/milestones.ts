@@ -2,7 +2,7 @@ import { PluginState } from '../../core/PluginState';
 import type { CalendarInfo } from '../../types/calendar_settings';
 import type { OFCEvent } from '../../types/schema';
 import { t } from '../i18n/i18n';
-import { activeDocument } from 'obsidian';
+// Do not import activeDocument from 'obsidian' as it is a global, not a module export at runtime.
 
 type MilestoneAction = 'created' | 'deleted' | 'updated' | 'moved';
 type ProviderType = Exclude<CalendarInfo['type'], 'FOR_TEST_ONLY'>;
@@ -506,6 +506,93 @@ const MILESTONE_DEFINITIONS: MilestoneDefinition[] = [
     }
   },
   {
+    id: 'nightOwl.100',
+    titleKey: 'settings.appearance.milestones.definitions.nightOwl100.title',
+    descriptionKey: 'settings.appearance.milestones.definitions.nightOwl100.description',
+    targetKey: 'settings.appearance.milestones.definitions.nightOwl100.target',
+    compute: state => ({ current: getCounter(state, 'meta.nightOwlOps'), target: 100 })
+  },
+  {
+    id: 'earlyBird.100',
+    titleKey: 'settings.appearance.milestones.definitions.earlyBird100.title',
+    descriptionKey: 'settings.appearance.milestones.definitions.earlyBird100.description',
+    targetKey: 'settings.appearance.milestones.definitions.earlyBird100.target',
+    compute: state => ({ current: getCounter(state, 'meta.earlyBirdOps'), target: 100 })
+  },
+  {
+    id: 'weekendWarrior.250',
+    titleKey: 'settings.appearance.milestones.definitions.weekendWarrior250.title',
+    descriptionKey: 'settings.appearance.milestones.definitions.weekendWarrior250.description',
+    targetKey: 'settings.appearance.milestones.definitions.weekendWarrior250.target',
+    compute: state => ({ current: getCounter(state, 'meta.weekendWarriorOps'), target: 250 })
+  },
+  {
+    id: 'nlpWhisperer.200',
+    titleKey: 'settings.appearance.milestones.definitions.nlpWhisperer200.title',
+    descriptionKey: 'settings.appearance.milestones.definitions.nlpWhisperer200.description',
+    targetKey: 'settings.appearance.milestones.definitions.nlpWhisperer200.target',
+    compute: state => ({ current: getCounter(state, 'meta.createdViaNlp'), target: 200 })
+  },
+  {
+    id: 'superOrganizer.10',
+    titleKey: 'settings.appearance.milestones.definitions.superOrganizer10.title',
+    descriptionKey: 'settings.appearance.milestones.definitions.superOrganizer10.description',
+    targetKey: 'settings.appearance.milestones.definitions.superOrganizer10.target',
+    compute: _state => {
+      const workspaces = PluginState.getSettings().workspaces ?? [];
+      return { current: workspaces.length, target: 10 };
+    }
+  },
+  {
+    id: 'syncSpecialist.8',
+    titleKey: 'settings.appearance.milestones.definitions.syncSpecialist8.title',
+    descriptionKey: 'settings.appearance.milestones.definitions.syncSpecialist8.description',
+    targetKey: 'settings.appearance.milestones.definitions.syncSpecialist8.target',
+    compute: _state => ({ current: computeRemoteActiveCount(), target: 8 })
+  },
+  {
+    id: 'created.total.25000',
+    titleKey: 'settings.appearance.milestones.definitions.createdTotal25000.title',
+    descriptionKey: 'settings.appearance.milestones.definitions.createdTotal25000.description',
+    targetKey: 'settings.appearance.milestones.definitions.createdTotal25000.target',
+    compute: state => ({ current: getActionCounter(state, 'created', 'total'), target: 25000 })
+  },
+  {
+    id: 'created.total.100000',
+    titleKey: 'settings.appearance.milestones.definitions.createdTotal100000.title',
+    descriptionKey: 'settings.appearance.milestones.definitions.createdTotal100000.description',
+    targetKey: 'settings.appearance.milestones.definitions.createdTotal100000.target',
+    compute: state => ({ current: getActionCounter(state, 'created', 'total'), target: 100000 })
+  },
+  {
+    id: 'habitualPlanner.100',
+    titleKey: 'settings.appearance.milestones.definitions.habitualPlanner100.title',
+    descriptionKey: 'settings.appearance.milestones.definitions.habitualPlanner100.description',
+    targetKey: 'settings.appearance.milestones.definitions.habitualPlanner100.target',
+    compute: state => ({ current: computeActionStreakDays(state), target: 100 })
+  },
+  {
+    id: 'dedicated.365days',
+    titleKey: 'settings.appearance.milestones.definitions.dedicated365.title',
+    descriptionKey: 'settings.appearance.milestones.definitions.dedicated365.description',
+    targetKey: 'settings.appearance.milestones.definitions.dedicated365.target',
+    compute: state => ({ current: computeDedicatedDays(state), target: 365 })
+  },
+  {
+    id: 'totalOps.250000',
+    titleKey: 'settings.appearance.milestones.definitions.totalOps250000.title',
+    descriptionKey: 'settings.appearance.milestones.definitions.totalOps250000.description',
+    targetKey: 'settings.appearance.milestones.definitions.totalOps250000.target',
+    compute: state => ({ current: computeTotalOps(state), target: 250000 })
+  },
+  {
+    id: 'totalOps.1000000',
+    titleKey: 'settings.appearance.milestones.definitions.totalOps1000000.title',
+    descriptionKey: 'settings.appearance.milestones.definitions.totalOps1000000.description',
+    targetKey: 'settings.appearance.milestones.definitions.totalOps1000000.target',
+    compute: state => ({ current: computeTotalOps(state), target: 1000000 })
+  },
+  {
     id: 'devMilestone',
     titleKey: 'settings.appearance.milestones.definitions.devMilestone.title',
     descriptionKey: 'settings.appearance.milestones.definitions.devMilestone.description',
@@ -520,40 +607,113 @@ const MILESTONE_DEFINITIONS: MilestoneDefinition[] = [
 function queueMilestoneToast(milestone: NewlyUnlockedMilestone, index: number): void {
   const delay = index * 220;
   window.setTimeout(() => {
-    if (typeof activeDocument === 'undefined') return;
-
-    const existingRoot = activeDocument.getElementById('ofc-milestone-toast-root');
-    const root = existingRoot ?? activeDocument.createDiv();
-    if (!existingRoot) {
-      root.id = 'ofc-milestone-toast-root';
-      activeDocument.body.appendChild(root);
+    // Resolve activeDocument robustly: check global scope (since it is a window global in Obsidian) or fallback to window.document
+    const doc =
+      (typeof activeDocument !== 'undefined' ? activeDocument : undefined) ??
+      (typeof window !== 'undefined' ? window.document : undefined);
+    if (!doc) {
+      console.warn('Full Calendar: activeDocument / window.document is undefined!');
+      return;
     }
 
-    const toast = activeDocument.createDiv();
+    const existingRoot = doc.getElementById('ofc-milestone-toast-root');
+    const root = existingRoot ?? doc.createElement('div');
+    if (!existingRoot) {
+      root.id = 'ofc-milestone-toast-root';
+      doc.body.appendChild(root);
+    }
+
+    const toast = doc.createElement('div');
     toast.className = 'ofc-milestone-toast';
 
-    const titleEl = activeDocument.createDiv();
+    const titleEl = doc.createElement('div');
     titleEl.className = 'ofc-milestone-toast-title';
-    titleEl.textContent = t('notices.milestones.unlockedTitle');
+    titleEl.textContent = milestone.title;
 
-    const bodyEl = activeDocument.createDiv();
+    const bodyEl = doc.createElement('div');
     bodyEl.className = 'ofc-milestone-toast-body';
-    bodyEl.textContent = t('notices.milestones.unlockedBody', {
-      title: milestone.title,
-      description: milestone.description
-    });
+    bodyEl.textContent = milestone.description;
 
     toast.appendChild(titleEl);
     toast.appendChild(bodyEl);
+
+    // Create Sponsorship/Ethics Support Footer
+    const footerEl = doc.createElement('div');
+    footerEl.className = 'ofc-milestone-toast-footer';
+
+    const footerDesc = doc.createElement('div');
+    footerDesc.className = 'ofc-milestone-toast-footer-desc';
+    footerDesc.textContent = t('notices.milestones.sponsorDesc');
+
+    const buttonsWrap = doc.createElement('div');
+    buttonsWrap.className = 'ofc-milestone-toast-footer-buttons';
+
+    const sponsorBtn = doc.createElement('a');
+    sponsorBtn.className = 'ofc-milestone-toast-btn btn-primary';
+    sponsorBtn.textContent = t('notices.milestones.sponsorBtn');
+    sponsorBtn.setAttribute('href', 'https://ko-fi.com/youfoundjk');
+    sponsorBtn.setAttribute('target', '_blank');
+    sponsorBtn.setAttribute('rel', 'noopener noreferrer');
+
+    const goalBtn = doc.createElement('a');
+    goalBtn.className = 'ofc-milestone-toast-btn btn-secondary';
+    goalBtn.textContent = t('notices.milestones.goalBtn');
+    goalBtn.setAttribute(
+      'href',
+      'https://obsidian-full-calendar-remastered.github.io/plugin-full-calendar/SustainabilityEthics/'
+    );
+    goalBtn.setAttribute('target', '_blank');
+    goalBtn.setAttribute('rel', 'noopener noreferrer');
+
+    buttonsWrap.appendChild(sponsorBtn);
+    buttonsWrap.appendChild(goalBtn);
+    footerEl.appendChild(footerDesc);
+    footerEl.appendChild(buttonsWrap);
+    toast.appendChild(footerEl);
+
     root.appendChild(toast);
 
-    window.setTimeout(() => {
-      toast.classList.add('ofc-milestone-toast-hide');
-      window.setTimeout(() => {
-        toast.remove();
-        if (!root.hasChildNodes()) root.remove();
-      }, 280);
-    }, 5200);
+    const duration = PluginState.getSettings().milestoneNotifierDuration ?? 8000;
+
+    let closeTimeout: number | null = null;
+    let removeTimeout: number | null = null;
+
+    const startTimer = () => {
+      closeTimeout = window.setTimeout(() => {
+        toast.classList.add('ofc-milestone-toast-hide');
+        removeTimeout = window.setTimeout(() => {
+          toast.remove();
+          if (!root.hasChildNodes()) {
+            root.remove();
+          }
+        }, 280);
+      }, duration);
+    };
+
+    const stopTimer = () => {
+      if (closeTimeout !== null) {
+        window.clearTimeout(closeTimeout);
+        closeTimeout = null;
+      }
+      if (removeTimeout !== null) {
+        window.clearTimeout(removeTimeout);
+        removeTimeout = null;
+      }
+      // Safely ensure the hide class is removed if mouse enters during the fade-out phase
+      toast.classList.remove('ofc-milestone-toast-hide');
+    };
+
+    // Start initial close timer
+    startTimer();
+
+    // Register hover pause listeners
+    toast.addEventListener('mouseenter', () => {
+      stopTimer();
+    });
+
+    toast.addEventListener('mouseleave', () => {
+      startTimer();
+    });
   }, delay);
 }
 
@@ -691,20 +851,20 @@ export async function triggerDevMilestoneIfActive(): Promise<void> {
     const settings = PluginState.getSettings();
     if (settings.dev === 1 || settings.dev === '1') {
       const state = ensureMilestonesState();
-      if (!state.unlockedAt['devMilestone']) {
-        state.unlockedAt['devMilestone'] = Date.now();
-        await PluginState.persistData();
-        const definition = MILESTONE_DEFINITIONS.find(d => d.id === 'devMilestone');
-        if (definition) {
-          queueMilestoneToast(
-            {
-              id: 'devMilestone',
-              title: t(definition.titleKey),
-              description: t(definition.descriptionKey)
-            },
-            0
-          );
-        }
+      state.unlockedAt['devMilestone'] = Date.now();
+      await PluginState.persistData();
+      const definition = MILESTONE_DEFINITIONS.find(d => d.id === 'devMilestone');
+      if (definition) {
+        queueMilestoneToast(
+          {
+            id: 'devMilestone',
+            title: t(definition.titleKey),
+            description: t(definition.descriptionKey)
+          },
+          0
+        );
+      } else {
+        console.warn('Full Calendar: definition for devMilestone not found!');
       }
     }
   } catch (error) {

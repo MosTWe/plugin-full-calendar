@@ -22,7 +22,7 @@ import type {
   EventSourceInput
 } from '@fullcalendar/core';
 
-import { Menu, activeDocument } from 'obsidian';
+import { Menu, activeDocument, type App } from 'obsidian';
 import type { PluginDef } from '@fullcalendar/core';
 import type { RecurringInstanceState } from '../../../../providers/Provider';
 import { createDateNavigation } from '../../../../features/navigation/DateNavigation';
@@ -31,7 +31,12 @@ import {
   type RRulePluginLike
 } from '../../../../features/timezone/Timezone';
 import { PluginState } from '../../../../core/PluginState';
-import { fetchWeatherForecast } from '../../../../features/weather/Weather';
+import {
+  fetchWeatherForecast,
+  type WeatherInfo,
+  formatTempRange
+} from '../../../../features/weather/Weather';
+import { WeatherDetailModal } from '../../../../features/weather/WeatherDetailModal';
 
 interface ExtraRenderProps {
   eventClick?: (info: EventClickArg) => void;
@@ -533,10 +538,7 @@ export async function renderCalendar(
 
   let pendingHeaders: { dateStr: string; el: HTMLElement }[] = [];
   let pendingCells: { dateStr: string; el: HTMLElement }[] = [];
-  let activeForecast: Record<
-    string,
-    { emoji: string; desc: string; maxTemp: number; minTemp: number }
-  > | null = null;
+  let activeForecast: Record<string, WeatherInfo> | null = null;
 
   const formatDateLocal = (date: Date): string => {
     const year = date.getFullYear();
@@ -545,22 +547,39 @@ export async function renderCalendar(
     return `${year}-${month}-${day}`;
   };
 
-  const injectHeaderWeather = (
-    el: HTMLElement,
-    data: { emoji: string; desc: string; maxTemp: number }
-  ) => {
+  const injectHeaderWeather = (el: HTMLElement, dateStr: string, data: WeatherInfo) => {
     if (el.querySelector('.ofc-weather-panel')) {
       return;
     }
+
+    const currentSettings = PluginState.getSettings();
+    const unit = currentSettings?.weatherUnit === 'F' ? 'F' : 'C';
 
     const innerEl = el.querySelector('.fc-scrollgrid-sync-inner') || el;
     const panelEl = innerEl.createDiv({ cls: 'ofc-weather-panel' });
 
     const emojiTempEl = panelEl.createDiv({ cls: 'ofc-weather-emoji-temp' });
     emojiTempEl.createSpan({ cls: 'ofc-weather-emoji' }).setText(data.emoji);
-    emojiTempEl.createSpan({ cls: 'ofc-weather-temp' }).setText(`${Math.round(data.maxTemp)}°C`);
+    emojiTempEl
+      .createSpan({ cls: 'ofc-weather-temp' })
+      .setText(formatTempRange(data.minTemp, data.maxTemp, unit));
 
     panelEl.createDiv({ cls: 'ofc-weather-desc' }).setText(data.desc);
+
+    panelEl.setCssProps({ cursor: 'pointer' });
+    panelEl.addEventListener('click', e => {
+      e.stopPropagation();
+      const doc = el?.ownerDocument || activeDocument;
+      interface PopoutWindow {
+        app: App;
+      }
+      const activeApp =
+        (doc?.defaultView as unknown as PopoutWindow | null)?.app ||
+        (window as unknown as PopoutWindow).app;
+      if (activeApp) {
+        new WeatherDetailModal(activeApp, dateStr, data).open();
+      }
+    });
   };
 
   const injectUnconfiguredHeaderWeather = (el: HTMLElement, isFirst: boolean) => {
@@ -585,20 +604,21 @@ export async function renderCalendar(
     panelEl.setCssProps({ cursor: 'pointer' });
     panelEl.addEventListener('click', e => {
       e.stopPropagation();
-      /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call */
-      const obsidianApp = (window as any).app;
-      if (obsidianApp) {
-        const setting = obsidianApp.setting;
-        if (setting) {
-          setting.open();
-          setting.openTabById('full-calendar-remastered');
-        }
+      const doc = el?.ownerDocument || activeDocument;
+      interface ObsidianAppWindow {
+        app: App & { setting?: { open: () => void; openTabById: (id: string) => void } };
       }
-      /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call */
+      const activeApp =
+        (doc?.defaultView as unknown as ObsidianAppWindow | null)?.app ||
+        (window as unknown as ObsidianAppWindow).app;
+      if (activeApp && activeApp.setting) {
+        activeApp.setting.open();
+        activeApp.setting.openTabById('full-calendar-remastered');
+      }
     });
   };
 
-  const injectCellWeather = (el: HTMLElement, data: { emoji: string }) => {
+  const injectCellWeather = (el: HTMLElement, dateStr: string, data: WeatherInfo) => {
     const topEl = el.querySelector('.fc-daygrid-day-top');
     if (!topEl) return;
 
@@ -608,6 +628,31 @@ export async function renderCalendar(
 
     const emojiEl = topEl.createSpan({ cls: 'ofc-weather-month-emoji' });
     emojiEl.setText(data.emoji);
+
+    emojiEl.setCssProps({ cursor: 'pointer' });
+
+    // Stop click bubbling and open the weather modal
+    emojiEl.addEventListener('click', e => {
+      e.stopPropagation();
+      const doc = el?.ownerDocument || activeDocument;
+      interface PopoutWindow {
+        app: App;
+      }
+      const activeApp =
+        (doc?.defaultView as unknown as PopoutWindow | null)?.app ||
+        (window as unknown as PopoutWindow).app;
+      if (activeApp) {
+        new WeatherDetailModal(activeApp, dateStr, data).open();
+      }
+    });
+
+    // Stop mousedown/pointerdown bubbling to prevent FullCalendar date-select and drag highlights
+    emojiEl.addEventListener('mousedown', e => {
+      e.stopPropagation();
+    });
+    emojiEl.addEventListener('pointerdown', e => {
+      e.stopPropagation();
+    });
   };
 
   const handleViewChangeAndFetchWeather = async (view: { activeStart: Date; activeEnd: Date }) => {
@@ -657,14 +702,14 @@ export async function renderCalendar(
 
       pendingHeaders.forEach(({ dateStr, el }) => {
         if (forecast[dateStr]) {
-          injectHeaderWeather(el, forecast[dateStr]);
+          injectHeaderWeather(el, dateStr, forecast[dateStr]);
         }
       });
       pendingHeaders = [];
 
       pendingCells.forEach(({ dateStr, el }) => {
         if (forecast[dateStr]) {
-          injectCellWeather(el, forecast[dateStr]);
+          injectCellWeather(el, dateStr, forecast[dateStr]);
         }
       });
       pendingCells = [];
@@ -687,7 +732,7 @@ export async function renderCalendar(
       }
       const dateStr = formatDateLocal(arg.date);
       if (activeForecast && activeForecast[dateStr]) {
-        injectHeaderWeather(arg.el, activeForecast[dateStr]);
+        injectHeaderWeather(arg.el, dateStr, activeForecast[dateStr]);
       } else {
         pendingHeaders.push({ dateStr, el: arg.el });
       }
@@ -703,7 +748,7 @@ export async function renderCalendar(
       }
       const dateStr = formatDateLocal(arg.date);
       if (activeForecast && activeForecast[dateStr]) {
-        injectCellWeather(arg.el, activeForecast[dateStr]);
+        injectCellWeather(arg.el, dateStr, activeForecast[dateStr]);
       } else {
         pendingCells.push({ dateStr, el: arg.el });
       }

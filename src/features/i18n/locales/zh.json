@@ -203,8 +203,9 @@
       "selectorUnavailable": "TaskNotes 插件不可用或未公开选择器集成。"
     },
     "milestones": {
-      "unlockedTitle": "成就已达成",
-      "unlockedBody": "{{title}} - {{description}}"
+      "sponsorDesc": "If FCR added value, please consider supporting the work:",
+      "sponsorBtn": "Support Development",
+      "goalBtn": "See Financial Goal"
     },
     "chronoAnalyserDemoLoaded": "ChronoAnalyser 示例已加载。",
     "chronoAnalyserDemoLoadedFromCache": "ChronoAnalyser 示例已从缓存加载。",
@@ -212,7 +213,8 @@
     "configureLinkedNotesDirFirst": "请先在设置中配置一个链接笔记目录。",
     "failedToCreateLinkedNote": "创建链接笔记失败。",
     "fcrReminderSynced": "FCR Reminder Companion 已成功同步。",
-    "fcrReminderCompanionOfflineBold": "警告：FCR Reminder Companion 守护进程处于离线状态。在启动之前，您将无法收到本地桌面通知。"
+    "fcrReminderCompanionOfflineBold": "警告：FCR Reminder Companion 守护进程处于离线状态。在启动之前，您将无法收到本地桌面通知。",
+    "chronoAnalyserChartLoadFailed": "Failed to load charting library. Please check your internet connection."
   },
   "eventCache": {
     "calendarNotFound": "无法添加事件：未找到 ID 为 {{calendarId}} 的日历。",
@@ -572,6 +574,66 @@
             "title": "数字馆长",
             "description": "在本地日历中维护超过 10,000 个未删除事件。",
             "target": "目标：10,000 个本地活动事件"
+          },
+          "nightOwl100": {
+            "title": "Midnight Dynamo",
+            "description": "Successfully perform 100 calendar operations during late-night hours (10 PM to 4 AM).",
+            "target": "Target: 100 late-night actions"
+          },
+          "earlyBird100": {
+            "title": "Dawn Ascendant",
+            "description": "Successfully perform 100 calendar operations during early-morning hours (5 AM to 8 AM).",
+            "target": "Target: 100 early-morning actions"
+          },
+          "weekendWarrior250": {
+            "title": "Sabbath Champion",
+            "description": "Perform 250 successful calendar operations on Saturdays and Sundays.",
+            "target": "Target: 250 weekend actions"
+          },
+          "nlpWhisperer200": {
+            "title": "NLP Conjurer",
+            "description": "Create 200 events using FCR NLP quick-add commands.",
+            "target": "Target: 200 NLP creations"
+          },
+          "superOrganizer10": {
+            "title": "Director General",
+            "description": "Maintain 10 or more active workspace configurations.",
+            "target": "Target: 10 workspaces"
+          },
+          "syncSpecialist8": {
+            "title": "Universal Connector",
+            "description": "Maintain 8 or more active remote calendars (Google/ICS/CalDAV).",
+            "target": "Target: 8 active remote calendars"
+          },
+          "createdTotal25000": {
+            "title": "Calendar Emperor",
+            "description": "Successfully create 25,000 events.",
+            "target": "Target: 25,000 created events"
+          },
+          "createdTotal100000": {
+            "title": "Time Overlord",
+            "description": "Successfully create 100,000 events.",
+            "target": "Target: 100,000 created events"
+          },
+          "habitualPlanner100": {
+            "title": "The Eternal Planner",
+            "description": "Perform calendar actions on 100 consecutive days.",
+            "target": "Target: 100-day action streak"
+          },
+          "dedicated365": {
+            "title": "Chronicle Sovereign",
+            "description": "Maintain at least 1 year (365 days) between first and latest recorded action.",
+            "target": "Target: 365-day history span"
+          },
+          "totalOps250000": {
+            "title": "Operations Sovereign",
+            "description": "Reach 250,000 total successful operations (create/delete/update/move).",
+            "target": "Target: 250,000 successful operations"
+          },
+          "totalOps1000000": {
+            "title": "Time-Space Continuum",
+            "description": "Reach 1,000,000 total successful operations.",
+            "target": "Target: 1,000,000 successful operations"
           }
         }
       }
@@ -973,7 +1035,19 @@
             "empty": "No location set.",
             "resolving": "Resolving location..."
           }
+        },
+        "unit": {
+          "label": "Temperature unit",
+          "description": "Choose whether to display temperatures in Celsius or Fahrenheit.",
+          "celsius": "Celsius (°C)",
+          "fahrenheit": "Fahrenheit (°F)"
         }
+      },
+      "detailModal": {
+        "title": "详细天气 - {{date}}",
+        "hourlyHeader": "每小时预报",
+        "apparentTemp": "体感温度: {{temp}}°C",
+        "noHourly": "暂无每小时预报数据。"
       },
       "conditions": {
         "unknown": "Unknown",
@@ -1029,8 +1103,11 @@
         "new": "新建事件",
         "edit": "编辑事件"
       },
+      "advancedOptions": "高级选项",
       "buttons": {
-        "openNote": "打开笔记"
+        "openNote": "打开笔记",
+        "delete": "删除",
+        "save": "保存事件"
       },
       "errors": {
         "createNoCalendars": "无法创建事件：没有可写的日历。",
@@ -1050,15 +1127,14 @@
       },
       "fields": {
         "title": {
-          "label": "标题",
           "placeholder": "事件标题"
         },
         "category": {
-          "label": "分类",
           "placeholder": "分类（可选）"
         },
         "display": {
           "label": "显示",
+          "tooltip": "选择此事件在日历上的显示方式",
           "options": {
             "auto": "普通事件",
             "background": "背景事件",
@@ -1081,9 +1157,9 @@
           "completed": "已完成"
         },
         "notification": {
-          "label": "通知：",
-          "mins": "分钟",
+          "label": "通知",
           "select": "选择...",
+          "mins": "分钟",
           "presets": {
             "30m": "30 分钟",
             "1h": "1 小时",
@@ -1119,11 +1195,18 @@
           },
           "yearlyText": "每年在 {{date}} 重复。",
           "endRepeat": "结束重复"
+        },
+        "location": {
+          "placeholder": "添加地点..."
+        },
+        "description": {
+          "placeholder": "添加描述..."
         }
       },
       "tooltips": {
         "recurringTaskCompletion": "重复任务的完成状态可以在日历视图中切换单个实例。",
-        "dailyNoteRecurring": "日记不支持重复事件。请改用 \"Full Note\" 日历。"
+        "dailyNoteRecurring": "日记不支持重复事件。请改用 \"Full Note\" 日历。",
+        "inheritedProperty": "此属性是继承的。点击编辑父重复事件。"
       }
     },
     "deleteRecurring": {

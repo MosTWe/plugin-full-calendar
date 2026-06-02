@@ -39,7 +39,7 @@ export async function createLinkedNoteForProvider({
   instanceDate?: string;
 }): Promise<TFile | null> {
   const existingFile = await linkedNoteIndex.getFileForEventAfterHydration(
-    event.uid || '',
+    event.uid || event.id || '',
     instanceDate
   );
   if (existingFile) {
@@ -89,7 +89,7 @@ async function createLinkedNoteFile({
   const bodyContent = TemplateEngine.render(template, event, calendarName, instanceDate);
 
   const frontmatter: Record<string, unknown> = {
-    'fc-event-uid': event.uid,
+    'fc-event-uid': event.uid || event.id,
     'fc-calendar-id': calendarId
   };
   if (instanceDate) {
@@ -141,7 +141,7 @@ export async function openOrCreateLinkedNote(
   // 2. Check if note already exists
   if (linkedNoteProvider.linkedNoteIndex) {
     const existingFile = await linkedNoteProvider.linkedNoteIndex.getFileForEventAfterHydration(
-      event.uid || '',
+      event.uid || event.id || '',
       instanceDate
     );
     if (existingFile) {
